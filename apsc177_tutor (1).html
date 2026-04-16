@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APSC 177 — AI Tutor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e14;
+    --surface: #16161f;
+    --surface2: #1e1e2e;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #4fd1c5;
+    --accent3: #f6ad55;
+    --danger: #fc8181;
+    --success: #68d391;
+    --text: #e2e2f0;
+    --muted: #8888aa;
+    --code-bg: #111120;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOP NAV */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(14,14,20,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 24px;
+    height: 60px;
+  }
+  .nav-logo { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; white-space: nowrap; }
+  .nav-logo span { color: var(--accent2); }
+  .nav-tabs { display: flex; gap: 4px; overflow-x: auto; flex: 1; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; white-space: nowrap;
+    color: var(--muted); border: none; background: transparent;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .nav-tab.active { color: var(--accent); background: rgba(124,106,247,0.15); }
+
+  /* API KEY BANNER */
+  .api-banner {
+    background: linear-gradient(135deg, rgba(124,106,247,0.15), rgba(79,209,197,0.1));
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .api-banner label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .api-input {
+    flex: 1; min-width: 200px; max-width: 400px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px;
+    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    outline: none;
+  }
+  .api-input:focus { border-color: var(--accent); }
+  .api-save-btn {
+    padding: 7px 16px; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: white; border: none;
+    font-size: 13px; font-weight: 600; font-family: 'Syne', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .api-save-btn:hover { opacity: 0.85; }
+  .api-status { font-size: 12px; }
+  .api-status.ok { color: var(--success); }
+  .api-status.warn { color: var(--accent3); }
+
+  /* MAIN LAYOUT */
+  .main { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .lesson-header {
+    margin-bottom: 36px;
+    padding: 28px 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: relative; overflow: hidden;
+  }
+  .lesson-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .lesson-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .lesson-title { font-size: 26px; font-weight: 800; line-height: 1.2; }
+  .lesson-desc { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  /* QUESTION CARD */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .question-card:focus-within { border-color: rgba(124,106,247,0.4); }
+
+  .q-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 16px;
+  }
+  .q-num {
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    color: white; font-size: 11px; font-weight: 800;
+    padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+    letter-spacing: 0.5px; margin-top: 2px;
+  }
+  .q-text { font-size: 15px; line-height: 1.65; flex: 1; }
+  .q-type-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .badge-mc { background: rgba(246,173,85,0.15); color: var(--accent3); }
+  .badge-code { background: rgba(124,106,247,0.15); color: var(--accent); }
+  .badge-written { background: rgba(79,209,197,0.15); color: var(--accent2); }
+
+  /* CODE BLOCKS in question */
+  pre.q-code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 12px 0 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    color: #c9d1d9;
+  }
+
+  /* ANSWER AREA */
+  .q-body { padding: 16px 24px; }
+
+  /* Multiple choice */
+  .mc-options { display: flex; flex-direction: column; gap: 8px; }
+  .mc-option {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .mc-option:hover { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+  .mc-option input[type=radio] { accent-color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+  .mc-option.selected { border-color: var(--accent); background: rgba(124,106,247,0.12); }
+  .mc-option label { cursor: pointer; font-size: 14px; line-height: 1.5; }
+
+  /* Code textarea */
+  .code-textarea {
+    width: 100%; min-height: 140px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: #c9d1d9;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.7;
+    resize: vertical; outline: none;
+    tab-size: 4;
+    transition: border-color 0.2s;
+  }
+  .code-textarea:focus { border-color: var(--accent); }
+
+  /* Written textarea */
+  .written-textarea {
+    width: 100%;
+    min-height: 90px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; line-height: 1.6;
+    resize: vertical; outline: none;
+    transition: border-color 0.2s;
+  }
+  .written-textarea:focus { border-color: var(--accent); }
+
+  /* HINT BOX */
+  .hint-toggle {
+    margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; font-size: 12px; font-weight: 600;
+    color: var(--accent3); letter-spacing: 0.5px;
+    background: rgba(246,173,85,0.1); border: 1px solid rgba(246,173,85,0.2);
+    border-radius: 20px; padding: 5px 12px;
+    transition: all 0.2s; user-select: none; border: none;
+  }
+  .hint-toggle:hover { background: rgba(246,173,85,0.18); }
+  .hint-box {
+    display: none; margin-top: 10px;
+    background: var(--code-bg);
+    border: 1px solid rgba(246,173,85,0.25);
+    border-left: 3px solid var(--accent3);
+    border-radius: 8px; padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.75; color: #c9d1d9;
+  }
+  .hint-box.open { display: block; }
+  .hint-label { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--accent3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ACTION ROW */
+  .action-row { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+
+  .btn-submit {
+    padding: 9px 20px; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: white; border: none;
+    font-size: 13px; font-weight: 700; font-family: 'Syne', sans-serif;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-submit.loading { opacity: 0.7; cursor: wait; }
+
+  .btn-reveal {
+    padding: 9px 18px; border-radius: 8px; cursor: pointer;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; font-family: 'Syne', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-reveal:hover { color: var(--text); border-color: var(--muted); }
+
+  /* ANSWER REVEAL */
+  .answer-reveal {
+    display: none; margin-top: 14px;
+    background: rgba(104,211,145,0.07);
+    border: 1px solid rgba(104,211,145,0.2);
+    border-left: 3px solid var(--success);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .answer-reveal.open { display: block; }
+  .answer-reveal-label {
+    font-size: 11px; font-weight: 700; color: var(--success);
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .answer-reveal pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.7; color: #c9d1d9;
+    white-space: pre-wrap;
+  }
+  .answer-reveal p { font-size: 14px; line-height: 1.6; }
+
+  /* FEEDBACK BOX */
+  .feedback-box {
+    display: none; margin-top: 14px;
+    border-radius: 8px; padding: 16px 18px;
+    font-size: 14px; line-height: 1.7;
+  }
+  .feedback-box.open { display: block; }
+  .feedback-box.correct {
+    background: rgba(104,211,145,0.08);
+    border: 1px solid rgba(104,211,145,0.25);
+  }
+  .feedback-box.incorrect {
+    background: rgba(252,129,129,0.08);
+    border: 1px solid rgba(252,129,129,0.25);
+  }
+  .feedback-box.partial {
+    background: rgba(246,173,85,0.08);
+    border: 1px solid rgba(246,173,85,0.25);
+  }
+  .feedback-verdict {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 15px; margin-bottom: 10px;
+  }
+  .verdict-icon { font-size: 18px; }
+  .feedback-body { color: var(--text); }
+  .feedback-body code {
+    background: var(--code-bg); border-radius: 4px;
+    padding: 1px 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  }
+
+  /* SPINNER */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .spinner.active { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    height: 3px; background: var(--border); border-radius: 99px; margin: 24px 0 32px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+  .progress-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    display: flex; align-items: center; gap: 12px; margin: 32px 0 20px;
+  }
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .section-divider-text { font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  @media (max-width: 600px) {
+    .main { padding: 24px 16px 60px; }
+    .q-header { padding: 16px 16px 12px; }
+    .q-body { padding: 12px 16px; }
+    .lesson-header { padding: 20px 20px; }
+    .api-banner { padding: 10px 16px; }
+    .nav { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">APSC<span>177</span> Tutor</div>
+  <div class="nav-tabs" id="navTabs"></div>
+</nav>
+
+<!-- API KEY BANNER -->
+<div class="api-banner">
+  <label>🔑 Anthropic API Key:</label>
+  <input class="api-input" id="apiKeyInput" type="password" placeholder="sk-ant-api03-...">
+  <button class="api-save-btn" onclick="saveKey()">Save Key</button>
+  <span class="api-status warn" id="apiStatus">⚠ Key required for AI feedback</span>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainContent"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ALL QUESTIONS DATA
+// ═══════════════════════════════════════════════════════════════
+const lessons = [
+  {
+    id: "practice-final",
+    title: "Practice Mini Final Exam",
+    tag: "Final Exam · April 16, 2026",
+    desc: "26 multiple choice + 5 written questions covering all topics. 70 minutes.",
+    questions: [
+      {
+        type: "mc", text: "What is the decimal representation of the 8-bit 2s complement number 0b1111_1100?",
+        options: ["a) 8", "b) -8", "c) 4", "d) -4"],
+        answer: "d) -4",
+        answerDetail: "0b1111_1100 in 2s complement: the MSB is 1 so it's negative. Flip bits: 0b0000_0011 = 3, add 1 = 4. So the value is -4."
+      },
+      {
+        type: "mc", text: "Given the following function definition, which function call would result in an error?\n\ndef my_fun(x=5, *y):\n    print(\"this is not fun\")",
+        options: ["a) my_fun(\"hi\", \"bye\")", "b) my_fun()", "c) my_fun(\"hello\", \"hi\", \"bye\")", "d) None of these."],
+        answer: "d) None of these.",
+        answerDetail: "All calls work: x has a default of 5, so calling with no args is fine. Extra positional args go into *y. None cause errors."
+      },
+      {
+        type: "mc", text: "What is the resulting output from running the code snippet below?\n\ndef my_fun(**x):\n    for v in x.values():\n        if v == 2:\n            return\n        print(\"going\")\nmy_fun(a=5, b=4, c=3, d=2)",
+        options: ["a) going", "b) going\ngoing", "c) going\ngoing\ngoing", "d) going\ngoing\ngoing\ngoing"],
+        answer: "c) going\ngoing\ngoing",
+        answerDetail: "The function iterates: a=5 → prints 'going', b=4 → prints 'going', c=3 → prints 'going', d=2 → returns. So exactly 3 'going' lines."
+      },
+      {
+        type: "mc", text: "What is the type of sys.argv in Python?",
+        options: ["a) dictionary", "b) list", "c) string", "d) integer"],
+        answer: "b) list",
+        answerDetail: "sys.argv is always a list of strings. sys.argv[0] is the script name, sys.argv[1:] are the arguments passed."
+      },
+      {
+        type: "mc", text: "What would appear in the terminal window as a result of running the code snippet below?\n\nx = \"four thousand\"\nprint(f\"x is {4000:,.1f}\")",
+        options: ["a) x is 4,000.0", "b) x is 4000.0", "c) four thousand is 4,000.00", "d) four thousand is 4,000.0"],
+        answer: "a) x is 4,000.0",
+        answerDetail: "The f-string prints the literal text 'x is', then formats the number 4000 with comma separators (:,) and 1 decimal (.1f), giving 4,000.0."
+      },
+      {
+        type: "mc", text: "What is the result of printing the following f-string?\n\nf\"|{12:5}|{123456:5}|\"",
+        options: ["a) |   12|123456|", "b) |   12|12345|", "c) |   12|12345|6", "d) |12|12345|"],
+        answer: "a) |   12|123456|",
+        answerDetail: "{12:5} pads 12 to width 5 → '   12'. {123456:5} — width 5 is a minimum; if the number is wider, Python won't truncate it, so 123456 stays as-is."
+      },
+      {
+        type: "mc", text: "Given the file contents shown below, which would result in a circular import error?\n\nfile1.py: import file2 / def a(): pass / file2.b()\nfile2.py: def b(): pass / import file1 / file1.a()",
+        options: ["a) Running either file1.py or file2.py.", "b) Running file1.py only.", "c) Running file2.py only.", "d) A circular import is not possible with these files."],
+        answer: "b) Running file1.py only.",
+        answerDetail: "Running file1.py triggers the circular import loop. Running file2.py first works because file2 defines b() before importing file1."
+      },
+      {
+        type: "mc", text: "A text file (my_file.txt) contains '123\\n456'. What will the output be?\n\nwith open(\"my_file.txt\",\"r\") as f:\n    print(f.read(5))\nprint(\"Done!\")",
+        options: ["a) 1234\\nDone!", "b) 123\\n4\\nDone!", "c) 1234\\nDone!", "d) 123\\n\\nDone!"],
+        answer: "b) 123\\n4\\nDone!",
+        answerDetail: "read(5) reads exactly 5 characters: '1','2','3','\\n','4' → prints '123\\n4'. Then print('Done!')."
+      },
+      {
+        type: "mc", text: "Given file1.py (print('foo') / import file2 / print('bar')) and file2.py (print('goo') / import file1 / print('car')), what is the output when file1.py is run?",
+        options: ["a) foo / goo / foo / bar / car / bar", "b) foo / goo / car / bar", "c) foo / goo / bar / car", "d) foo / bar / goo / car"],
+        answer: "b) foo / goo / car / bar",
+        answerDetail: "file1 prints 'foo', imports file2 → file2 prints 'goo', file2 imports file1 (already cached, skipped), file2 prints 'car'. Control returns to file1 which prints 'bar'."
+      },
+      {
+        type: "mc", text: "my_file.txt contains 'HeLLo\\nworLd'. Which code snippet gives output 'HeLLo\\nDone!'?",
+        options: [
+          "a) with open('my_file.txt','w') ...: print(f.readline()) / print('Done!')",
+          "b) with open('my_file.txt','r') ...: print(f.readline()) / print('\\nDone!')",
+          "c) with open('my_file.txt','x') ...: print(f.readline()) / print('Done!')",
+          "d) with open('my_file.txt','r') ...: print(f.readline()) / print('Done!')"
+        ],
+        answer: "d) with open('my_file.txt','r') ...: print(f.readline()) / print('Done!')",
+        answerDetail: "Mode 'r' opens for reading. readline() gets 'HeLLo\\n', print adds another newline → blank line. Then 'Done!'. Option b adds an extra \\n before Done!. Options a and c use wrong modes."
+      },
+      {
+        type: "mc", text: "A file has two lines: '123\\n456'. Which code snippet prints the contents in a *single* line?",
+        options: [
+          "a) print(line1 + line2)  [after reading both lines]",
+          "b) print(line1[:-1] + line2[:-1])  [after reading both lines]",
+          "c) print(f.readline(), end='') / print(f.readline(), end='')",
+          "d) Both a) and c)."
+        ],
+        answer: "b) print(line1[:-1] + line2[:-1])  [after reading both lines]",
+        answerDetail: "line1[:-1] strips the trailing newline from '123\\n' → '123', then + line2[:-1] → '123456' in one line. Option a keeps newlines. Option c prints on separate lines because line1 has \\n built in."
+      },
+      {
+        type: "mc", text: "What is the output from running the following code?\n\nclass A:\n    def __init__(self): self.x = 1\n    def __str__(self):\n        return f\"{self.x} + 1\"\na = A()\nprint(a)",
+        options: ["a) 1", "b) 2", "c) X", "d) 1 + 1"],
+        answer: "d) 1 + 1",
+        answerDetail: "__str__ returns the string f\"{self.x} + 1\" which evaluates self.x as 1, giving '1 + 1'. The + 1 is a literal string, not arithmetic."
+      },
+      {
+        type: "mc", text: "What is the output from running:\n\nclass X:\n    def __init__(self, x): self.x = x\nx1 = X(2)\nx2 = X(3)\nprint(x1 + x2)",
+        options: ["a) A TypeError is raised.", "b) 4", "c) 5", "d) 6"],
+        answer: "a) A TypeError is raised.",
+        answerDetail: "Class X does not define __add__, so Python doesn't know how to add two X objects together → TypeError: unsupported operand type(s) for +."
+      },
+      {
+        type: "mc", text: "Which class definition for X results in an error when running x = X(1) / print(x.x)?",
+        options: [
+          "a) class X: def __init__(self, x): x = x",
+          "b) class X: def __init__(x): self.x = x",
+          "c) class X: def __init__(self): self.x = x",
+          "d) All of these would result in an error."
+        ],
+        answer: "d) All of these would result in an error.",
+        answerDetail: "a) x=x doesn't set self.x, so x.x raises AttributeError. b) first arg should be self, so x=1 and 'self' is undefined. c) __init__ takes no extra arg, so X(1) raises TypeError. All error."
+      },
+      {
+        type: "mc", text: "What is the proper way to create an instance of class Y?\n\nclass X:\n    def __init__(self, x): self.x = x\nclass Y(X):\n    def __init__(self): self.y = None",
+        options: ["a) y = Y(2)", "b) y = Y()", "c) y = Y(X(2))", "d) None of these."],
+        answer: "b) y = Y()",
+        answerDetail: "Y overrides __init__ with no extra parameters (only self), so y = Y() is correct. Y(2) would fail because Y's __init__ takes only self."
+      },
+      {
+        type: "mc", text: "What is the output from running:\n\nclass Test:\n    def __init__(self, x): self.x = x\nobj1 = Test(10)\nobj2 = Test(20)\nprint(obj1.x, obj2.x)",
+        options: ["a) 20\\n20", "b) 10 20", "c) 20 20", "d) Error because __str__ is not defined."],
+        answer: "b) 10 20",
+        answerDetail: "Each instance stores its own x. obj1.x = 10, obj2.x = 20. print(obj1.x, obj2.x) prints them space-separated: '10 20'."
+      },
+      {
+        type: "mc", text: "What are the attributes of an instance of class Y at instantiation?\n\nclass X:\n    def __init__(self):\n        self.b = 0\nclass Y(X):\n    def __init__(self):\n        self.a = 0\n        super().__init__()",
+        options: ["a) There are none.", "b) a", "c) b", "d) a and b"],
+        answer: "d) a and b",
+        answerDetail: "Y.__init__ sets self.a = 0, then calls super().__init__() which sets self.b = 0. So the instance has both a and b."
+      },
+      {
+        type: "mc", text: "What is true about *protected* attributes in a Python class?",
+        options: [
+          "a) They can be directly modified, although it is not good style to do so.",
+          "b) They cannot be modified after instantiation.",
+          "c) They can be modified by using the name-mangled attribute name.",
+          "d) They can be accessed but not modified."
+        ],
+        answer: "a) They can be directly modified, although it is not good style to do so.",
+        answerDetail: "Protected attributes (single underscore prefix like _x) are a convention only — Python does not enforce any restriction. You can modify them directly, it's just bad style."
+      },
+      {
+        type: "mc", text: "What is the proper way to call method a from method b?",
+        options: [
+          "a) def b(self): a()",
+          "b) def b(self): self.a()",
+          "c) def b(self): a(self)",
+          "d) def b(self): self.a(self)"
+        ],
+        answer: "b) def b(self): self.a()",
+        answerDetail: "Inside a class, you access instance methods via self. self.a() correctly calls method a with self automatically passed as the first argument."
+      },
+      {
+        type: "mc", text: "What are the attributes of class X below?\n\nclass X:\n    def __init__(self, x): self.x = 0\n    @property\n    def x(self): return self.__x\n    @x.setter\n    def x(self, x): self.__x = x",
+        options: ["a) x", "b) __x", "c) x and __x", "d) 0"],
+        answer: "a) x",
+        answerDetail: "The public interface attribute is x (accessed via the property). __x is the private name-mangled backing store, but the user-facing attribute is x. Answer is a)."
+      },
+      {
+        type: "mc", text: "Given the class definition, which line(s) call __str__?\n\nclass X:\n    def __init__(self, x): self.x = x\n    def __str__(self): return str(self.x)",
+        options: [
+          "a) x = X(3)",
+          "b) x = X(3) then print(x)",
+          "c) x = X(3) then x._X__str__()",
+          "d) Both b) and c)."
+        ],
+        answer: "d) Both b) and c).",
+        answerDetail: "print(x) calls __str__ automatically. x._X__str__() uses name-mangling to call it directly. Both invoke __str__. Option a) only calls __init__."
+      },
+      {
+        type: "mc", text: "What is the proper way to create an instance of the Star class?\n\nclass Star:\n    def __init__(self, *moons):\n        self.moons = moons",
+        options: [
+          "a) star = Star(\"betelgeuse\")",
+          "b) star = Star(\"betelgeuse\", \"supergiant\")",
+          "c) star = Star()",
+          "d) All of the above."
+        ],
+        answer: "d) All of the above.",
+        answerDetail: "*moons collects any number of positional args (including zero). All three calls are valid: a) one moon, b) two moons, c) zero moons."
+      },
+      {
+        type: "mc", text: "Why does the following code result in an error?\n\nclass X:\n    def __init__(self): self.x = 1.5\n    def __len__(self): return self.x\nx = X()\nlen(x)",
+        options: [
+          "a) __len__ must return an integer.",
+          "b) len is not defined for objects of type X.",
+          "c) No parameters were provided at instantiation.",
+          "d) The __len__ method does not take any arguments, but one was provided."
+        ],
+        answer: "a) __len__ must return an integer.",
+        answerDetail: "Python's built-in len() requires __len__ to return a non-negative integer. Returning 1.5 (a float) raises TypeError: __len__ returned non-integer."
+      },
+      {
+        type: "mc", text: "Which decorator is used for getters?",
+        options: ["a) @property.getter", "b) @property.setter", "c) @property", "d) @<attribute>.property"],
+        answer: "c) @property",
+        answerDetail: "@property turns a method into a getter. @x.setter is used for setters. @property.getter doesn't exist as a standard decorator."
+      },
+      {
+        type: "mc", text: "What OOP principle is illustrated by the class definitions below?\n\nclass X:\n    def display(self): print('X')\nclass Y:\n    def display(self): print('Y')",
+        options: ["a) inheritance", "b) polymorphism", "c) encapsulation", "d) decorators"],
+        answer: "b) polymorphism",
+        answerDetail: "Both classes have a display() method with the same name but different behaviour. This is polymorphism — different types responding to the same method call differently."
+      },
+      {
+        type: "mc", text: "What is the main reason for declaring a class attribute as private?",
+        options: [
+          "a) To prevent hackers from infiltrating the class.",
+          "b) To hide data such as passwords or credit card numbers.",
+          "c) To control how the attribute is accessed and modified.",
+          "d) To encrypt the data using sha256."
+        ],
+        answer: "c) To control how the attribute is accessed and modified.",
+        answerDetail: "Making an attribute private (with __) lets you define exactly what happens when it's read or changed (via getters/setters), preventing invalid values or accidental modification."
+      },
+      {
+        type: "written",
+        text: "What is the output as a result of running the code snippet below?\n\nclass SmartLight:\n    def __init__(self, name, wattage):\n        self.name = name\n        self.wattage = wattage\n        self.is_on = False\n        self.total_energy = 0.0\n    def toggle(self):\n        self.is_on = not self.is_on\n        if self.is_on:\n            self.total_energy += self.wattage\n    def __str__(self):\n        status = \"ON\" if self.is_on else \"OFF\"\n        return f\"{self.name}:{status}\"\n\nL1 = SmartLight(\"Kitchen\", 50)\nL1.toggle()\nL1.toggle()\nprint(L1)\nprint(L1.total_energy)",
+        answer: "Kitchen:OFF\n50.0",
+        answerDetail: "toggle() called twice: 1st toggle → is_on=True, total_energy=50.0. 2nd toggle → is_on=False (no energy added). print(L1) calls __str__ → 'Kitchen:OFF'. print(L1.total_energy) → 50.0"
+      },
+      {
+        type: "written",
+        text: "What would the contents of data.txt be as a result of running the following code?\n\nname = \"Motor_A\"\nvalue = 1.25\nwith open(\"data.txt\", \"x\") as f:\n    f.write(f\"ID:\\t{name}\\n\")\n    f.write(f\"Value:\\t{value * 4:.2f}\")\n    f.write(\"A\")\n    print(\"DONE\")",
+        answer: "ID:\tMotor_A\nValue:\t5.00A",
+        answerDetail: "Line 1: 'ID:' + tab + 'Motor_A' + newline. Line 2: 'Value:' + tab + str(1.25*4 formatted to 2dp = 5.00) then immediately 'A' appended (no newline between them). print('DONE') goes to terminal, not file."
+      },
+      {
+        type: "written",
+        text: "What would the output be as a result of running the following code?\n\ndef configure_system(name, mode=\"standard\", *args, **kwargs):\n    print(f\"Name: {name}\")\n    print(f\"Args: {args}\")\n    print(f\"Mode: {mode}\")\n    print(f\"Kwargs: {kwargs}\")\n\nconfigure_system(\"Beta\", 3, 4, 5, verbose=True)",
+        answer: "Name: Beta\nArgs: (4, 5)\nMode: 3\nKwargs: {'verbose': True}",
+        answerDetail: "'Beta' → name, 3 → mode (positional, overrides default), 4 and 5 → *args tuple, verbose=True → **kwargs. Note mode=3 not 'standard' because 3 is passed positionally."
+      },
+      {
+        type: "code",
+        text: "Write a function called filter_keys that takes a required argument called prefix (a string) and an arbitrary number of keyword arguments. The function should return a dictionary containing only the key-value pairs where the key starts with the given prefix.\n\nExpected: filter_keys('temp', temp=1, high_temp=2, cool=3, temper=4) → {'temp': 1, 'temper': 4}",
+        hint: "# Hint: use **kwargs to capture keyword args\n# Use str.startswith() to check the prefix\n\ndef filter_keys(prefix, **kwargs):\n    result = {}\n    for key, value in kwargs.items():\n        if key.startswith(prefix):\n            result[key] = value\n    return result",
+        answer: "def filter_keys(prefix, **kwargs):\n    return {k: v for k, v in kwargs.items() if k.startswith(prefix)}",
+        answerDetail: "Use **kwargs to collect all keyword arguments. Then iterate over kwargs.items() and include only those where the key starts with prefix using str.startswith(). A dict comprehension is the cleanest solution."
+      },
+      {
+        type: "code",
+        text: "Define a class called Classic that:\n• Inherits from Classify (provided below)\n• Ensures the private attribute x (inherited) is an integer ≤ 100. Default x is 100.\n• Defines subtraction from an integer: returns a new Classic with x decreased by that integer.\n\nclass Classify:\n    def __init__(self, x):\n        self.x = x\n        print('got it')\n    @property\n    def x(self): return self.__x\n    @x.setter\n    def x(self, x): self.__x = x\n\n# Expected:\n# c1 = Classic(400)  → prints 'got it', c1.x == 100\n# c2 = c1 - 50       → prints 'got it', c2.x == 50",
+        hint: "# Hint: Override __init__ to clamp x to 100\n# Use super().__init__(clamped_value)\n# Override the x setter to enforce the constraint\n# Define __sub__ to handle the - operator\n\nclass Classic(Classify):\n    def __init__(self, x=100):\n        super().__init__(min(x, 100) if isinstance(x, int) else 100)\n\n    @Classify.x.setter\n    def x(self, x):\n        self._Classify__x = x if isinstance(x, int) and x <= 100 else 100\n\n    def __sub__(self, other):\n        return Classic(self.x - other)",
+        answer: "class Classic(Classify):\n    def __init__(self, x=100):\n        if not isinstance(x, int) or x > 100:\n            x = 100\n        super().__init__(x)\n\n    @Classify.x.setter\n    def x(self, x):\n        self._Classify__x = x if isinstance(x, int) and x <= 100 else 100\n\n    def __sub__(self, other):\n        return Classic(self.x - other)",
+        answerDetail: "Key ideas:\n1. Override __init__ with default x=100, clamp to 100 if >100 or not int.\n2. Call super().__init__(x) to trigger 'got it'.\n3. Override the x setter using @Classify.x.setter to enforce constraints.\n4. __sub__(self, other) returns Classic(self.x - other), which triggers __init__ again."
+      }
+    ]
+  },
+  {
+    id: "lesson1",
+    title: "Lesson 1 — Terminal & VS Code Basics",
+    tag: "Lesson 1",
+    desc: "Working directories, VS Code setup, terminal commands for file/folder management.",
+    questions: [
+      {
+        type: "written",
+        text: "In a VS Code project, you have three files open from three different folders. List the three distinct 'working directories' that VS Code tracks simultaneously, and explain what each one controls.",
+        answer: "1. VS Code working directory (set when you open a folder via 'Open Folder') — used by extensions and IntelliSense.\n2. Terminal working directory — the folder the terminal is currently 'in', used by commands like python file.py.\n3. The path of the file open in the text editor — just the location of the file being edited, doesn't affect terminal commands.",
+        answerDetail: "These three can all be different! For example: VS Code might be opened on Project A, the terminal navigated to Project B, and you're editing a file in Project C."
+      },
+      {
+        type: "code",
+        text: "Write the sequence of terminal commands (PowerShell) to:\n1. Create a folder called PhotoProject\n2. Inside it, create subfolders: scripts and images\n3. Create app.py inside scripts\n4. Move app.py to PhotoProject root\n5. Delete the empty scripts folder",
+        hint: "# PowerShell commands:\n# mkdir FolderName        → create a folder\n# cd FolderName           → change directory\n# ni FileName             → New-Item (create a file)\n# mv source destination   → move file\n# rm -r FolderName        → remove folder recursively",
+        answer: "mkdir PhotoProject\ncd PhotoProject\nmkdir scripts\nmkdir images\ncd scripts\nni app.py\ncd ..\nmv .\\scripts\\app.py .\nrm -r scripts",
+        answerDetail: "Key points: 'ni' creates a new file. 'mv source dest' moves files. 'rm -r' removes a folder and everything in it. The '.' refers to the current directory."
+      }
+    ]
+  },
+  {
+    id: "lesson2",
+    title: "Lesson 2 — Variables, Types & Operators",
+    tag: "Lesson 2",
+    desc: "Variable types, naming conventions, arithmetic/comparison/logical operators, f-strings.",
+    questions: [
+      {
+        type: "written",
+        text: "Evaluate the following expressions step by step:\n\na) 4 ** 2 / 8 + 3\nb) 20 - 3 % 5\nc) 2 * 3 + 5 * 2",
+        answer: "a) (4**2)/8 + 3 = 16/8 + 3 = 2.0 + 3 = 5.0\nb) 20 - (3%5) = 20 - 3 = 17\nc) (2*3) + (5*2) = 6 + 10 = 16",
+        answerDetail: "Python operator precedence (high to low): ** → * / % → + -. When two operators have equal precedence, they evaluate left to right. Note 4**2/8 returns float because / always returns float."
+      },
+      {
+        type: "written",
+        text: "Evaluate these logical/conditional expressions:\n\na) x = 10, y = 20: x > 5 and y < 25 or y == 30\nb) 5 < 3 + 4 < 10\nc) a = -1: a and a + 5 or a - 5",
+        answer: "a) (True and True) or False = True or False = True\nb) 5 < 7 < 10 → (5<7) and (7<10) = True and True = True\nc) -1 and 4 or -6 → 4 or -6 = 4",
+        answerDetail: "Python supports chained comparisons (5 < 7 < 10). For 'and'/'or': non-zero integers are truthy. 'a and b' returns a if a is falsy, else b. 'a or b' returns a if a is truthy, else b. So -1 and 4 = 4 (since -1 is truthy), then 4 or -6 = 4 (since 4 is truthy)."
+      },
+      {
+        type: "mc",
+        text: "Which of the following variable names are valid AND conform to the Python style guide?",
+        options: ["a) 1234_ID = 'valid'", "b) student@ubc.ca = 'email'", "c) bad_style = True", "d) int = 4"],
+        answer: "c) bad_style = True",
+        answerDetail: "a) Can't start with a digit. b) @ is not allowed in variable names. c) Correct — uses snake_case, valid identifier. d) 'int' is allowed but overwrites the built-in int() function — bad practice."
+      },
+      {
+        type: "written",
+        text: "Evaluate the all-in-one expression:\n\nx = 5\ny = 10\n(y > 5 or y < 20) and (y % 2 == 0 == True)",
+        answer: "False",
+        answerDetail: "Step by step: (10>5 or 10<20) = (True or True) = True. Then (10%2 == 0 == True) = (0 == 0 == True). Python chains this as (0==0) and (0==True) = True and False = False. So True and False = False."
+      }
+    ]
+  },
+  {
+    id: "lesson3",
+    title: "Lesson 3 — Control Flow (if/elif/else)",
+    tag: "Lesson 3",
+    desc: "Conditional statements, inline if/else, isinstance(), input(), and checkout logic.",
+    questions: [
+      {
+        type: "code",
+        text: "Fix the code below so it runs as intended. The program should:\n- Print 'You are not old enough' if age < 18\n- Do nothing if 19 ≤ age < 65 (pass)\n- Print 'You are too old' if age ≥ 65\n- Always print 'Thank you for using the age checker!'\n\nage = 19\nif age < 18:\n    print('You are not old enough')\nelif 19 < age < 65:\n    pass\nelse:\n    old = True\nprint('You are too old')\nprint('Thank you for using the age checker!')",
+        hint: "# Bugs to look for:\n# 1. The elif condition is wrong — it excludes age == 19\n# 2. 'print You are too old' is outside the else block\n\n# Fix: change elif to cover the right range\n# Fix: indent the print inside else",
+        answer: "age = 19\nif age < 18:\n    print('You are not old enough')\nelif age < 65:\n    pass\nelse:\n    print('You are too old')\nprint('Thank you for using the age checker!')",
+        answerDetail: "Two bugs: 1) elif 19 < age < 65 excludes age==19 — should be elif age < 65. 2) print('You are too old') was outside the else block so it always ran — it needs to be indented inside else."
+      },
+      {
+        type: "code",
+        text: "Write a program that:\n• Checks if a variable is even or odd if it is a positive integer\n• Checks if |variable| > 10 if it is a negative integer\n• Checks if it contains 'a' if it is a string\n• Prints 'Error: invalid variable' otherwise\n\nvar = -9  # test with different values",
+        hint: "# Use isinstance(var, int) to check type\n# Use isinstance(var, str) to check string\n# Remember bool is a subtype of int in Python!\n# Use 'a' in var to check string membership",
+        answer: "var = -9\nif isinstance(var, int) and not isinstance(var, bool):\n    if var > 0:\n        print('odd') if var % 2 else print('even')\n    else:\n        if abs(var) > 10:\n            print('|var| is greater than 10')\nelif isinstance(var, str) and 'a' in var:\n    print(\"'a' is in var\")\nelse:\n    print('Error: invalid variable')",
+        answerDetail: "Key points: isinstance(True, int) returns True because bool is a subtype of int — add 'not isinstance(var, bool)' to exclude booleans. Use abs() for absolute value. The 'a' in var checks substring membership in strings."
+      }
+    ]
+  },
+  {
+    id: "lesson4",
+    title: "Lesson 4 — Lists, Dicts & Sets",
+    tag: "Lesson 4",
+    desc: "List slicing, dictionaries, sets, and operations on these data structures.",
+    questions: [
+      {
+        type: "written",
+        text: "Given mixed_list = [True, 3.14, -4, 'elderberry', 1, 2, 3, 4, 5]:\na) How do you access the 4th item?\nb) How do you access the 2nd-to-last item?\nc) How do you extract the last third of the list?",
+        answer: "a) mixed_list[3]  (index starts at 0)\nb) mixed_list[-2]\nc) N = len(mixed_list)  →  mixed_list[-N//3:]  →  mixed_list[-3:]  →  [3, 4, 5]",
+        answerDetail: "Python uses 0-based indexing. Negative indices count from the end (-1 is last, -2 is second-to-last). For slicing thirds: len=9, N//3=3, so last third is [-3:]."
+      },
+      {
+        type: "code",
+        text: "Given a = [1,2,3,4] and b = [2.25, 2.5, 2.75], write code to insert list b into the middle of a, resulting in [1, 2, 2.25, 2.5, 2.75, 3, 4].",
+        hint: "# Hint: use slicing!\n# a[:mid] gives the first half\n# a[mid:] gives the second half\n# You can concatenate lists with +\n\nN = len(a)\na = a[:N//2] + b + a[N//2:]",
+        answer: "a = [1,2,3,4]\nb = [2.25, 2.5, 2.75]\nN = len(a)\na = a[:N//2] + b + a[N//2:]",
+        answerDetail: "N//2 = 2 (integer division). a[:2] = [1,2], a[2:] = [3,4]. Concatenate: [1,2] + [2.25,2.5,2.75] + [3,4] = [1,2,2.25,2.5,2.75,3,4]."
+      },
+      {
+        type: "code",
+        text: "Given:\nAPSC177 = {'Jordan','Taylor','Kai','Nasim'}\nAPSC183 = {'Ali','Jordan','Kai','Aiden'}\nAPSC171 = {'Najwa','Nasim','Nick','Kai'}\nAPSC173 = {'Ali','Nasim','Jordan','Nick','Kai','Najwa','Aiden'}\n\nWrite code to print:\na) Students in ALL four courses\nb) Students in AT LEAST ONE course",
+        hint: "# Set operations:\n# & (intersection) → elements in BOTH sets\n# | (union) → elements in EITHER set\n\n# All four:\nprint(APSC177 & APSC183 & APSC171 & APSC173)",
+        answer: "# Students in all four:\nprint(APSC177 & APSC183 & APSC171 & APSC173)\n# Students in at least one:\nprint(APSC177 | APSC183 | APSC171 | APSC173)",
+        answerDetail: "& is intersection (AND) — elements must be in all sets. | is union (OR) — elements in any set. Result for all four: {'Kai'}. Result for at least one: all students combined."
+      }
+    ]
+  },
+  {
+    id: "lesson5",
+    title: "Lesson 5 — Loops (for & while)",
+    tag: "Lesson 5",
+    desc: "for loops, while loops, range(), nested loops, break/continue, and matrix operations.",
+    questions: [
+      {
+        type: "code",
+        text: "Use a for loop to count how many elements are needed from the list below to exceed a running sum of 20. Use break when found.\n\nc = [0, 0, 1, 4, 0, 6, 0, 0, 0, 0, 7, 9, 10, 0, 0, 0, 4, 2]",
+        hint: "# Start a running_sum = 0 and counter n = 1\n# Loop through c with: for i in c:\n#   running_sum += i\n#   if running_sum > 20: print and break\n#   n += 1",
+        answer: "c = [0,0,1,4,0,6,0,0,0,0,7,9,10,0,0,0,4,2]\nrunning_sum = 0\nn = 1\nfor i in c:\n    running_sum += i\n    if running_sum > 20:\n        print(n, 'elements needed to exceed a running sum of 20.')\n        break\n    n += 1",
+        answerDetail: "The running sum grows as we add each element. We count elements with n. When the sum exceeds 20, we print n and break out of the loop. Without break, the loop would continue unnecessarily."
+      },
+      {
+        type: "code",
+        text: "Write a program that sets all elements above the main diagonal to zero in a matrix (making it lower triangular).\n\nmat_3 = [[1,2,3],[4,5,6],[7,8,9]]  # expected: [[1,0,0],[4,5,0],[7,8,9]]",
+        hint: "# The main diagonal is where row index == col index (i == j)\n# 'Above diagonal' means column index j > row index i\n# Use nested loops: outer for rows (i), inner for cols (j)\n# If j > i: set mat[i][j] = 0",
+        answer: "mat_3 = [[1,2,3],[4,5,6],[7,8,9]]\nn = len(mat_3)\nfor i in range(n):\n    for j in range(i+1, n):\n        mat_3[i][j] = 0\nprint(mat_3)",
+        answerDetail: "The inner loop starts at j = i+1 (one position past the diagonal) and goes to n. Every element at [i][j] where j > i is above the diagonal and gets set to 0."
+      },
+      {
+        type: "code",
+        text: "Use nested for loops to print all combinations of motor types and voltages:\n\nmotors = {'fanuc':'brushless','festo':'brushed','kollmorgen':'stepper'}\npower_supplies = {'helios':12,'acopian':30,'magna-power':24}",
+        hint: "# Loop over .values() of both dicts\n# Nested loop: for each motor type, go through all voltages\nfor type in motors.values():\n    for voltage in power_supplies.values():\n        print(type, voltage)",
+        answer: "for mtype in motors.values():\n    for voltage in power_supplies.values():\n        print(mtype, voltage)",
+        answerDetail: "We use .values() to get just the values (not keys). The outer loop gives motor type (brushless, brushed, stepper), the inner loop gives voltage (12, 30, 24). This prints 9 combinations total."
+      }
+    ]
+  },
+  {
+    id: "lesson6",
+    title: "Lesson 6 — Style, Debugging & Exceptions",
+    tag: "Lesson 6",
+    desc: "PEP8 style, VS Code debugger, breakpoints, and try/except/else/finally.",
+    questions: [
+      {
+        type: "code",
+        text: "Write a Python program that converts all characters in a string to integers and stores them in a list. Use exception handling. Test with:\n\nmy_str = '123abd456efg'",
+        hint: "# Use try/except to catch ValueError when int() fails\n# Loop through each character with: for c in my_str:\n# int(c) raises ValueError for non-numeric characters\n# Use else for success, finally for 'always runs' logic",
+        answer: "my_str = '123abd456efg'\nint_list = []\nfor c in my_str:\n    try:\n        int_list.append(int(c))\n    except ValueError:\n        print('could not convert', c, 'to int')\n    else:\n        print('added', c, 'to list')\n    finally:\n        print('processed', c)\nprint(int_list)",
+        answerDetail: "try: attempts int(c). except ValueError: catches the error for non-numeric chars. else: runs only when no exception occurred. finally: always runs, even after exceptions. Result: int_list = [1,2,3,4,5,6]."
+      },
+      {
+        type: "written",
+        text: "Identify and explain the bug(s) in the code below:\n\nnames = ['Joe', 'Jane']\nnames_alphabetical = names\nnames_alphabetical.sort()\nnames_reverse_alphabetical = names_alphabetical\nnames_reverse_alphabetical.reverse()\nprint(names)\nprint(names_alphabetical)\nprint(names_reverse_alphabetical)",
+        answer: "Bug: names_alphabetical = names does NOT copy the list — both variables point to the same object. Same for names_reverse_alphabetical = names_alphabetical. So sorting/reversing one affects all three.\n\nFix:\nnames_alphabetical = names.copy()\nnames_alphabetical.sort()\nnames_reverse_alphabetical = names_alphabetical.copy()\nnames_reverse_alphabetical.reverse()",
+        answerDetail: "In Python, = with a list just copies the reference, not the data. Use .copy() to create an independent copy. This is a common source of bugs with mutable objects like lists and dicts."
+      }
+    ]
+  },
+  {
+    id: "lesson7",
+    title: "Lesson 7 — Functions",
+    tag: "Lesson 7",
+    desc: "Function definitions, *args, **kwargs, default parameters, scope, and global.",
+    questions: [
+      {
+        type: "code",
+        text: "Write a function called build_profile that:\n• Takes two required positional arguments: first_name and last_name\n• Takes any number of additional keyword arguments (location, hobby, etc.)\n• Returns a single dictionary with all this info\n\nExample: build_profile('Ada', 'Lovelace', job='programmer', age=36)",
+        hint: "# Use **kwargs to capture extra keyword arguments\n# Start with a dict containing first_name and last_name\n# Loop through kwargs.items() and add each to the dict\n\ndef build_profile(first_name, last_name, **kwargs):\n    profile = {'first_name': first_name, 'last_name': last_name}\n    for k, v in kwargs.items():\n        profile[k] = v\n    return profile",
+        answer: "def build_profile(first_name, last_name, **kwargs):\n    profile = {'first_name': first_name, 'last_name': last_name}\n    for key, value in kwargs.items():\n        profile[key] = value\n    return profile",
+        answerDetail: "**kwargs captures any extra keyword arguments as a dictionary. You can also do profile.update(kwargs) instead of the loop, or start with profile = {'first_name': first_name, 'last_name': last_name, **kwargs} to unpack directly."
+      },
+      {
+        type: "code",
+        text: "Write a function called multiply_all that takes any number of numerical arguments and returns their product.\n\nExample: multiply_all(2, 3, 4) → 24",
+        hint: "# Use *args to accept any number of positional arguments\n# Start result = 1 (not 0, since we're multiplying!)\n# Loop through args and multiply\n\ndef multiply_all(*args):\n    result = 1\n    for num in args:\n        result *= num\n    return result",
+        answer: "def multiply_all(*args):\n    result = 1\n    for num in args:\n        result *= num\n    return result",
+        answerDetail: "*args collects all positional arguments into a tuple. Initialize result=1 (multiplying by 1 doesn't change anything). Multiply each element. Note: if args is empty, returns 1, which is the identity for multiplication."
+      },
+      {
+        type: "written",
+        text: "Explain what is happening in the following code and why it is problematic:\n\nmy_dict = {'a':1,'b':2,'c':3}\ndef variable_modifier(my_dict):\n    my_dict['d'] = 4\n    my_dict = {'e':5}\nprint(my_dict)\nvariable_modifier(my_dict)\nprint(my_dict)",
+        answer: "The function receives a reference to the same dict object. my_dict['d'] = 4 modifies the original dict (so the global dict now has 'd':4). But my_dict = {'e':5} just rebinds the local variable — it does NOT change the global dict. Final output: {'a':1,'b':2,'c':3,'d':4}.",
+        answerDetail: "This shows Python's 'pass by object reference' behaviour. Mutating the object (adding a key) affects the caller's copy. But reassigning the local variable just makes it point to a new object — the original is unchanged. Best practice: don't modify input arguments."
+      }
+    ]
+  },
+  {
+    id: "lesson8",
+    title: "Lesson 8 — Command-Line Arguments",
+    tag: "Lesson 8",
+    desc: "sys.argv, command-line argument parsing, and formatted output.",
+    questions: [
+      {
+        type: "code",
+        text: "Write a script that takes a math operator (+, -, or /) and two numbers as command-line arguments, performs the operation, and prints the result. Handle common exceptions.",
+        hint: "# import sys\n# sys.argv[0] = script name\n# sys.argv[1] = operator, sys.argv[2] and [3] = numbers\n# Wrap in try/except for ValueError (bad numbers)\n# and ZeroDivisionError (divide by zero)",
+        answer: "import sys\ntry:\n    op = sys.argv[1]\n    num1 = float(sys.argv[2])\n    num2 = float(sys.argv[3])\n    if op == '+': result = num1 + num2\n    elif op == '-': result = num1 - num2\n    elif op == '/': result = num1 / num2\nexcept ZeroDivisionError:\n    print('Cannot divide by zero')\nexcept ValueError:\n    print('Arguments 2 and 3 must be numbers')\nexcept Exception as e:\n    print('Error:', e)\nelse:\n    print(result)",
+        answerDetail: "sys.argv is a list of strings. sys.argv[1] onwards are the arguments. float() converts strings to numbers and raises ValueError if conversion fails. ZeroDivisionError is raised by division. 'else' in try/except runs only if no exception occurred."
+      },
+      {
+        type: "code",
+        text: "Write a script that takes an arbitrary number of command-line arguments and counts how many times each argument appears (stores in a dictionary).\n\nExample: python script.py ans1 ans2 ans1 ans3 → {'ans1': 2, 'ans2': 1, 'ans3': 1}",
+        hint: "# Loop through sys.argv[1:] (skip script name)\n# Use a dict: if key exists, increment; else set to 1\n\nimport sys\nfreq = {}\nfor arg in sys.argv[1:]:\n    if arg in freq:\n        freq[arg] += 1\n    else:\n        freq[arg] = 1",
+        answer: "import sys\nfreq = {}\nfor arg in sys.argv[1:]:\n    if arg in freq.keys():\n        freq[arg] += 1\n    else:\n        freq[arg] = 1\nprint(freq)",
+        answerDetail: "sys.argv[1:] skips the script name at index 0. We check if the argument is already a key in freq; if yes, increment its count, otherwise initialize to 1. This is a frequency counter pattern."
+      }
+    ]
+  },
+  {
+    id: "lesson9",
+    title: "Lesson 9 — Modules & Imports",
+    tag: "Lesson 9",
+    desc: "__name__ == '__main__', circular imports, library usage, and module structure.",
+    questions: [
+      {
+        type: "code",
+        text: "Write a Python script called apsc177_math_utils.py that:\n• When run as a script: takes 3 command-line args (num1, num2, operation) and prints the result\n• When imported as a library: provides add(), multiply(), divide() functions\n• Include exception handling for divide by zero and invalid numbers",
+        hint: "# Key idea: use if __name__ == '__main__': for the script-only part\n# Functions defined at top level are available when imported\n\nimport sys\ndef add(x,y): print(x+y)\ndef divide(x,y):\n    try: print(x/y)\n    except ZeroDivisionError: print('Cannot divide by zero')\n\nif __name__ == '__main__':\n    # parse sys.argv here",
+        answer: "import sys\n\ndef add(x, y):\n    print(x + y)\n\ndef multiply(x, y):\n    print(x * y)\n\ndef divide(x, y):\n    try:\n        print(x / y)\n    except ZeroDivisionError:\n        print('Second argument cannot be zero when dividing.')\n\nif __name__ == '__main__':\n    try:\n        x = float(sys.argv[1])\n        y = float(sys.argv[2])\n    except ValueError:\n        print('First two arguments must be numeric.')\n    else:\n        op = sys.argv[3]\n        if op == 'add': add(x, y)\n        if op == 'multiply': multiply(x, y)\n        if op == 'divide': divide(x, y)",
+        answerDetail: "if __name__ == '__main__': is True only when the file is run directly. When imported, __name__ is the module name, so the script block is skipped. This lets the same file serve as both a script and a library."
+      },
+      {
+        type: "written",
+        text: "Explain what a circular import error is and describe a situation where it would occur. Use the file1.py / file2.py example from the lessons.",
+        answer: "A circular import occurs when two modules each try to import the other, creating an infinite loop. Example: file1.py runs 'import file2' → Python starts loading file2 → file2.py runs 'import file1' → Python starts loading file1 again (already loading!) → circular dependency → ImportError or incomplete module. It only triggers if the import happens before the needed definitions exist.",
+        answerDetail: "Python caches module imports in sys.modules. If module A is being imported and triggers import of B, which tries to import A, Python gives B the partially-loaded A — missing any definitions after the import statement. This causes NameErrors or AttributeErrors."
+      }
+    ]
+  },
+  {
+    id: "lesson10",
+    title: "Lesson 10 — File I/O",
+    tag: "Lesson 10",
+    desc: "Reading and writing files, open() modes, readline(), read(), write(), and with statements.",
+    questions: [
+      {
+        type: "code",
+        text: "Write a Python script that creates a file called names.txt and continually prompts the user for first names, writing each on a new line. Stop when the user enters 'no one'.",
+        hint: "# Use open('names.txt', 'w') to create/overwrite\n# Use a while True loop with input()\n# Check if name == 'no one' and break\n# Otherwise f.write(name + '\\n')\n\nwith open('names.txt', 'w') as f:\n    while True:\n        name = input('Enter a name: ')\n        if name == 'no one': break\n        f.write(f'{name}\\n')",
+        answer: "with open('names.txt', 'w') as f:\n    while True:\n        name = input('Enter a first name: ')\n        if name == 'no one':\n            break\n        else:\n            f.write(f'{name}\\n')",
+        answerDetail: "Mode 'w' creates the file or overwrites it. The 'with' statement ensures the file is closed when done (even if an error occurs). f.write() doesn't add a newline automatically — you must add \\n yourself."
+      },
+      {
+        type: "written",
+        text: "What is the difference between file open modes 'r', 'w', 'a', and 'x'? When would you use each?",
+        answer: "'r' = read only. File must exist. 'w' = write, creates or overwrites. 'a' = append, creates or adds to end. 'x' = exclusive create, fails if file already exists (prevents accidental overwrite).",
+        answerDetail: "Use 'r' to read existing data. Use 'w' when you want to start fresh. Use 'a' to add data without erasing existing content (like a log file). Use 'x' when you want to ensure you never accidentally overwrite an existing file."
+      },
+      {
+        type: "code",
+        text: "Create a script list_printer.py that takes a filename as a command-line argument, reads it, and prints only the content inside square brackets [ ].\n\nExample file content: 'This file has: [1, \"2\", False]'\nExpected output: [1, '2', False]",
+        hint: "# import sys\n# Use sys.argv[1] for the filename\n# Read the whole file with f.read()\n# Use str.find('[') and str.find(']') to get indices\n# Slice the string: content[i:j+1]",
+        answer: "import sys\nwith open(sys.argv[1], 'r') as f:\n    content = f.read()\n    i = content.find('[')\n    j = content.find(']')\n    print(content[i:j+1])",
+        answerDetail: "find() returns the index of the first occurrence of a character (-1 if not found). Slicing content[i:j+1] includes the '[' and ']' characters (j+1 because slicing is exclusive of the end index)."
+      }
+    ]
+  },
+  {
+    id: "lesson11",
+    title: "Lesson 11 — Object-Oriented Programming",
+    tag: "Lesson 11",
+    desc: "Classes, __init__, inheritance, super(), properties, encapsulation, and operator overloading.",
+    questions: [
+      {
+        type: "code",
+        text: "Create a class called City with:\n• Attributes: name, country (default 'Canada'), population\n• Method display(): prints '{name}, {country}'\n• Method update_pop(amount): increases population by amount\n\nThen write a function max_city(*cities) that returns the city with the largest population.",
+        hint: "# Class structure:\n# class City:\n#     def __init__(self, name, population, country='Canada'):\n#         ...\n#     def display(self):\n#         print(f'{self.name}, {self.country}')\n\n# For max_city: track max_pop and largest_city as you loop",
+        answer: "class City:\n    def __init__(self, name, population, country='Canada'):\n        self.name = name\n        self.country = country\n        self.population = population\n\n    def display(self):\n        print(f'{self.name}, {self.country}')\n\n    def update_pop(self, num):\n        self.population += num\n\ndef max_city(*cities):\n    max_pop = 0\n    largest = None\n    for city in cities:\n        if city.population > max_pop:\n            largest = city\n            max_pop = city.population\n    return largest",
+        answerDetail: "Default parameter country='Canada' must come AFTER non-default parameters. The max_city function uses *cities (variadic args) to accept any number of City objects and finds the one with highest population by iterating."
+      },
+      {
+        type: "code",
+        text: "Create a class Robot with:\n• Attributes: type (default 'articulated'), position (default [0,0,0]), orientation (default [0,0,0])\n• Method absolute_move(position, orientation): updates position and orientation\n• Method relative_move(position, orientation): adds element-by-element to current\n• __str__ method that displays position and orientation\n\nThen create GroundVehicle inheriting from Robot with type='ground' and 2D position/orientation.",
+        hint: "# class Robot:\n#     def __init__(self, type='articulated', position=[0,0,0], orientation=[0,0,0]):\n#         ...\n#     def relative_move(self, pos, orient):\n#         for i in range(len(self.position)):\n#             self.position[i] += pos[i]\n\n# class GroundVehicle(Robot):\n#     def __init__(self, length, wheelbase):\n#         super().__init__('ground', [0,0], [0,0])\n#         self.length = length",
+        answer: "class Robot:\n    def __init__(self, type='articulated', position=[0,0,0], orientation=[0,0,0]):\n        self.type = type\n        self.position = position\n        self.orientation = orientation\n\n    def absolute_move(self, position, orientation):\n        self.position = position\n        self.orientation = orientation\n\n    def relative_move(self, position, orientation):\n        for i in range(len(self.position)):\n            self.position[i] += position[i]\n        for i in range(len(self.orientation)):\n            self.orientation[i] += orientation[i]\n\n    def __str__(self):\n        return f'Position: {self.position}\\nOrientation: {self.orientation}'\n\nclass GroundVehicle(Robot):\n    def __init__(self, length, wheelbase):\n        super().__init__('ground', [0,0], [0,0])\n        self.length = length\n        self.wheelbase = wheelbase",
+        answerDetail: "super().__init__() calls the parent Robot's __init__ with 'ground' type and 2D lists. This means GroundVehicle doesn't have to rewrite all the attribute setup. __str__ is called automatically by print()."
+      },
+      {
+        type: "code",
+        text: "Add to GroundVehicle:\n1. __mul__ to scale a vehicle (multiply length and wheelbase by a scalar, return new GroundVehicle)\n2. A distance() method returning distance from origin\n3. __gt__ comparing distances from origin between two vehicles",
+        hint: "# __mul__(self, other): other is the scalar\n#   return GroundVehicle(self.length * other, self.wheelbase * other)\n\n# distance: sqrt(x^2 + y^2)\n#   return (self.position[0]**2 + self.position[1]**2) ** 0.5\n\n# __gt__: compare self.distance() > other.distance()",
+        answer: "# Add to GroundVehicle:\ndef __mul__(self, other):\n    return GroundVehicle(self.length * other, self.wheelbase * other)\n\ndef distance(self):\n    return (self.position[0]**2 + self.position[1]**2) ** 0.5\n\ndef __gt__(self, other):\n    return self.distance() > other.distance()",
+        answerDetail: "__mul__ is called when you write vehicle * 3. It returns a NEW GroundVehicle — it doesn't modify the original. __gt__ implements > operator. self.distance() > other.distance() already returns True/False, so no need for an if statement."
+      }
+    ]
+  },
+  {
+    id: "lesson12",
+    title: "Lesson 12 — Bits & Binary",
+    tag: "Lesson 12",
+    desc: "Binary/decimal conversion, 2s complement, bitwise operators, and fixed-point representation.",
+    questions: [
+      {
+        type: "written",
+        text: "Convert the following to decimal:\na) 0b0001_1010 (binary)\nb) 0b0010.01 (binary, fixed-point)",
+        answer: "a) 2¹ + 2³ + 2⁴ = 2 + 8 + 16 = 26\nb) 2¹ + 2⁻² = 2 + 0.25 = 2.25",
+        answerDetail: "For a): identify which bit positions are 1 (positions 1,3,4 counting from right starting at 0). Sum their powers of 2. For b): bits to the right of the binary point have negative exponents: 2⁻¹=0.5, 2⁻²=0.25."
+      },
+      {
+        type: "written",
+        text: "Evaluate the following bitwise operations:\na) 7 | 3 & 5\nb) 1 << 2 + 1\nc) (8 | 4) & (~3)\nd) ~10 - 5",
+        answer: "a) 7 | (3&5) = 7 | 1 = 0b0111 | 0b0001 = 0b0111 = 7\nb) 1 << (2+1) = 1 << 3 = 8\nc) (0b1000|0b0100) & ~0b0011 = 0b1100 & 0b...1111_1100 = 12\nd) (~0b0000_1010) - 5 = 0b1111_0101 - 5 = -11 - 5 = -16",
+        answerDetail: "Precedence: + before <<, & before |, bitwise ops after arithmetic. For ~: in 2s complement, ~n = -(n+1). So ~10 = -11. For (8|4)=12=0b1100, ~3=0b...1111_1100, AND gives 0b1100=12."
+      },
+      {
+        type: "written",
+        text: "Evaluate:\nx = 5\ny = 10\n(x & y | x ^ y) + (x > y or y < 20) * ~x",
+        answer: "Step 1: 5&10 = 0b0101&0b1010 = 0b0000 = 0\nStep 2: 5^10 = 0b0101^0b1010 = 0b1111 = 15\nStep 3: 0 | 15 = 15\nStep 4: (5>10 or 10<20) = (False or True) = True = 1\nStep 5: ~5 = -6\nStep 6: 1 * -6 = -6\nResult: 15 + (-6) = 9",
+        answerDetail: "XOR (^) flips bits that differ. AND (&) keeps bits that are both 1. Since 5=0b0101 and 10=0b1010 have no bits in common, their AND is 0. Their XOR gives all 1s in the used positions = 15. True acts as 1 in arithmetic."
+      },
+      {
+        type: "written",
+        text: "Convert 255 to binary. Show all division steps.",
+        answer: "255 ÷ 2 = 127 remainder 1\n127 ÷ 2 = 63 remainder 1\n63 ÷ 2 = 31 remainder 1\n31 ÷ 2 = 15 remainder 1\n15 ÷ 2 = 7 remainder 1\n7 ÷ 2 = 3 remainder 1\n3 ÷ 2 = 1 remainder 1\n1 ÷ 2 = 0 remainder 1\nReading remainders bottom-to-top: 0b1111_1111",
+        answerDetail: "The repeated division method: divide by 2, record the remainder (0 or 1), repeat with the quotient until quotient is 0. Read remainders from bottom to top to get the binary representation. 255 = 2⁸ - 1, so all 8 bits are 1."
+      }
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let currentLesson = 0;
+let apiKey = localStorage.getItem('apsc177_api_key') || '';
+if (apiKey) {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiStatus').textContent = '✓ Key loaded';
+  document.getElementById('apiStatus').className = 'api-status ok';
+}
+
+function saveKey() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('apsc177_api_key', apiKey);
+  const s = document.getElementById('apiStatus');
+  if (apiKey.startsWith('sk-ant-')) {
+    s.textContent = '✓ Key saved';
+    s.className = 'api-status ok';
+  } else {
+    s.textContent = '⚠ Key format looks wrong — should start with sk-ant-';
+    s.className = 'api-status warn';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILD NAV TABS
+// ═══════════════════════════════════════════════════════════════
+const navTabsEl = document.getElementById('navTabs');
+lessons.forEach((lesson, idx) => {
+  const btn = document.createElement('button');
+  btn.className = 'nav-tab' + (idx === 0 ? ' active' : '');
+  btn.textContent = lesson.id === 'practice-final' ? '📋 Practice Final' : lesson.tag;
+  btn.onclick = () => switchLesson(idx);
+  navTabsEl.appendChild(btn);
+});
+
+function switchLesson(idx) {
+  currentLesson = idx;
+  document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  renderLesson(lessons[idx]);
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderLesson(lesson) {
+  const el = document.getElementById('mainContent');
+
+  let html = `
+    <div class="lesson-header">
+      <div class="lesson-tag">${escHtml(lesson.tag)}</div>
+      <div class="lesson-title">${escHtml(lesson.title)}</div>
+      <div class="lesson-desc">${escHtml(lesson.desc)}</div>
+    </div>
+    <div class="progress-label" id="progressLabel">0 / ${lesson.questions.length} answered</div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+  `;
+
+  // Group by sections for final exam
+  if (lesson.id === 'practice-final') {
+    const mcQs = lesson.questions.filter(q => q.type === 'mc');
+    const shortQs = lesson.questions.filter(q => q.type === 'written');
+    const codeQs = lesson.questions.filter(q => q.type === 'code');
+
+    html += renderSectionDivider('Questions 1–26 · Multiple Choice (1 mark each)');
+    mcQs.forEach((q, i) => { html += renderQuestion(q, lesson.questions.indexOf(q)); });
+
+    html += renderSectionDivider('Questions 27–29 · Short Written (3 marks each)');
+    shortQs.forEach((q) => { html += renderQuestion(q, lesson.questions.indexOf(q)); });
+
+    html += renderSectionDivider('Questions 30–31 · Code Writing (6 marks each)');
+    codeQs.forEach((q) => { html += renderQuestion(q, lesson.questions.indexOf(q)); });
+  } else {
+    lesson.questions.forEach((q, i) => { html += renderQuestion(q, i); });
+  }
+
+  el.innerHTML = html;
+  attachListeners(lesson);
+}
+
+function renderSectionDivider(text) {
+  return `<div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">${text}</div><div class="section-divider-line"></div></div>`;
+}
+
+function renderQuestion(q, idx) {
+  const typeBadge = q.type === 'mc' ? '<span class="q-type-badge badge-mc">Multiple Choice</span>'
+    : q.type === 'code' ? '<span class="q-type-badge badge-code">Code Writing</span>'
+    : '<span class="q-type-badge badge-written">Written</span>';
+
+  // Split question text: detect code blocks (lines starting with 4+ spaces or containing specific patterns)
+  const textParts = formatQuestionText(q.text);
+
+  let answerHtml = '';
+
+  if (q.type === 'mc') {
+    answerHtml = `<div class="mc-options">` +
+      q.options.map((opt, oi) => `
+        <label class="mc-option" id="opt-${idx}-${oi}">
+          <input type="radio" name="mc-${idx}" value="${oi}" onchange="onMCChange(${idx})">
+          <label>${escHtml(opt)}</label>
+        </label>
+      `).join('') +
+      `</div>`;
+  } else if (q.type === 'code') {
+    answerHtml = `<div class="hint-label" style="margin-bottom:4px;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--accent);text-transform:uppercase;">Your Answer (Python code):</div>
+      <textarea class="code-textarea" id="ans-${idx}" placeholder="# Write your Python code here..." onkeydown="handleTab(event)" rows="8"></textarea>`;
+  } else {
+    answerHtml = `<div class="hint-label" style="margin-bottom:4px;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--accent2);text-transform:uppercase;">Your Answer:</div>
+      <textarea class="written-textarea" id="ans-${idx}" placeholder="Write your answer here..." rows="4"></textarea>`;
+  }
+
+  const hintSection = q.hint ? `
+    <button class="hint-toggle" onclick="toggleHint(${idx})">💡 Click for a similar code example</button>
+    <div class="hint-box" id="hint-${idx}">
+      <div class="hint-label">Example / Hint</div><pre>${escHtml(q.hint)}</pre>
+    </div>
+  ` : '';
+
+  return `
+    <div class="question-card" id="card-${idx}">
+      <div class="q-header">
+        <span class="q-num">Q${idx + 1}</span>
+        <div class="q-text">${textParts}</div>
+        ${typeBadge}
+      </div>
+      <div class="q-body">
+        ${answerHtml}
+        ${hintSection}
+        <div class="action-row">
+          <button class="btn-submit" id="submit-${idx}" onclick="submitAnswer(${idx})">
+            <div class="spinner" id="spin-${idx}"></div>
+            <span id="submit-label-${idx}">Get AI Feedback</span>
+          </button>
+          <button class="btn-reveal" onclick="toggleReveal(${idx})">Show Answer</button>
+        </div>
+        <div class="feedback-box" id="feedback-${idx}"></div>
+        <div class="answer-reveal" id="reveal-${idx}">
+          <div class="answer-reveal-label">✓ Model Answer</div>
+          <pre>${escHtml(q.answer)}</pre>
+          ${q.answerDetail ? `<p style="margin-top:10px;color:var(--muted);font-size:13px;">💬 ${escHtml(q.answerDetail)}</p>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function formatQuestionText(text) {
+  // Split on newlines, detect code-looking lines
+  const lines = text.split('\n');
+  let result = '';
+  let inCode = false;
+  let codeLines = [];
+
+  function flushCode() {
+    if (codeLines.length) {
+      result += `<pre class="q-code">${escHtml(codeLines.join('\n'))}</pre>`;
+      codeLines = [];
+    }
+    inCode = false;
+  }
+
+  lines.forEach(line => {
+    const isCodeLine = line.startsWith('    ') || line.startsWith('\t') ||
+      /^(def |class |import |from |if |else|elif |for |while |try|except|return |print\(|with )/.test(line.trimStart()) ||
+      /[=\[\]{}()+\-*/:]\s*$/.test(line) || line.includes('#') ||
+      line.match(/^\s*(self\.|super\(|\@|""")/);
+    const isBlank = line.trim() === '';
+
+    if (isCodeLine) {
+      if (!inCode) inCode = true;
+      codeLines.push(line);
+    } else if (isBlank && inCode) {
+      codeLines.push(line);
+    } else {
+      if (inCode) flushCode();
+      result += `<span>${escHtml(line)}</span><br>`;
+    }
+  });
+  if (inCode) flushCode();
+  return result;
+}
+
+function handleTab(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '    ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 4;
+  }
+}
+
+function onMCChange(idx) {
+  // Visual feedback on selection
+  const opts = document.querySelectorAll(`[id^="opt-${idx}-"]`);
+  opts.forEach(o => o.classList.remove('selected'));
+  const checked = document.querySelector(`input[name="mc-${idx}"]:checked`);
+  if (checked) checked.parentElement.classList.add('selected');
+}
+
+function toggleHint(idx) {
+  const box = document.getElementById(`hint-${idx}`);
+  box.classList.toggle('open');
+}
+
+function toggleReveal(idx) {
+  const box = document.getElementById(`reveal-${idx}`);
+  box.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PROGRESS TRACKING
+// ═══════════════════════════════════════════════════════════════
+const answered = new Set();
+
+function updateProgress() {
+  const lesson = lessons[currentLesson];
+  const total = lesson.questions.length;
+  const done = answered.size;
+  const pct = total ? (done / total) * 100 : 0;
+  const label = document.getElementById('progressLabel');
+  const fill = document.getElementById('progressFill');
+  if (label) label.textContent = `${done} / ${total} answered`;
+  if (fill) fill.style.width = pct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI FEEDBACK
+// ═══════════════════════════════════════════════════════════════
+async function submitAnswer(idx) {
+  const lesson = lessons[currentLesson];
+  const q = lesson.questions[idx];
+  const btn = document.getElementById(`submit-${idx}`);
+  const spinner = document.getElementById(`spin-${idx}`);
+  const label = document.getElementById(`submit-label-${idx}`);
+  const feedbackEl = document.getElementById(`feedback-${idx}`);
+
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    feedbackEl.innerHTML = `<div class="feedback-verdict"><span class="verdict-icon">⚠️</span><span style="color:var(--accent3)">API Key Required</span></div>
+      <div class="feedback-body">Please enter your Anthropic API key at the top of the page to get AI feedback. Your key stays in your browser's local storage and is sent only to Anthropic's API.</div>`;
+    feedbackEl.className = 'feedback-box partial open';
+    return;
+  }
+
+  // Get user answer
+  let userAnswer = '';
+  if (q.type === 'mc') {
+    const checked = document.querySelector(`input[name="mc-${idx}"]:checked`);
+    if (!checked) {
+      feedbackEl.innerHTML = `<div class="feedback-body">Please select an answer first!</div>`;
+      feedbackEl.className = 'feedback-box partial open';
+      return;
+    }
+    userAnswer = q.options[parseInt(checked.value)];
+  } else {
+    userAnswer = document.getElementById(`ans-${idx}`).value.trim();
+    if (!userAnswer) {
+      feedbackEl.innerHTML = `<div class="feedback-body">Please write your answer first!</div>`;
+      feedbackEl.className = 'feedback-box partial open';
+      return;
+    }
+  }
+
+  // Loading state
+  btn.disabled = true;
+  btn.classList.add('loading');
+  spinner.classList.add('active');
+  label.textContent = 'Marking...';
+  feedbackEl.className = 'feedback-box open partial';
+  feedbackEl.innerHTML = '<div class="feedback-body" style="color:var(--muted)">🤔 AI is reviewing your answer...</div>';
+
+  const systemPrompt = `You are a friendly, encouraging Python tutor for a first-year engineering course (APSC 177 at UBC Okanagan). Your job is to give detailed, simple, and helpful feedback on student answers.
+
+ALWAYS structure your response EXACTLY like this (use these exact labels):
+
+VERDICT: [CORRECT / PARTIAL / INCORRECT]
+
+FEEDBACK:
+[2-4 sentences of plain English feedback. Say what they got right first, then what needs improvement. Use simple language. Be encouraging but honest. Reference specific parts of their answer.]
+
+WHY IT WORKS (or WHY IT DOESN'T):
+[1-3 sentences explaining the underlying Python concept. Use plain language. If they wrote code, point to specific lines.]
+
+HOW TO IMPROVE:
+[1-2 concrete actionable suggestions. If code: suggest exact changes or patterns to use. If written: say what key idea was missing.]
+
+WHAT TO STUDY:
+[1-2 specific Python topics to review. Be specific e.g. "Review how *args works in function definitions" not just "study functions".]
+
+Keep the total response under 200 words. Use simple vocabulary — avoid jargon unless you explain it.`;
+
+  const userPrompt = `Question (type: ${q.type}):
+${q.text}
+
+Correct answer:
+${q.answer}
+
+Additional context:
+${q.answerDetail || 'N/A'}
+
+Student's answer:
+${userAnswer}
+
+Please mark this answer and give helpful feedback.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    // Parse verdict
+    const verdictMatch = text.match(/VERDICT:\s*(CORRECT|PARTIAL|INCORRECT)/i);
+    const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : 'PARTIAL';
+
+    const icon = verdict === 'CORRECT' ? '✅' : verdict === 'INCORRECT' ? '❌' : '🟡';
+    const verdictLabel = verdict === 'CORRECT' ? 'Correct!' : verdict === 'INCORRECT' ? 'Not quite right' : 'Partially correct';
+    const cssClass = verdict === 'CORRECT' ? 'correct' : verdict === 'INCORRECT' ? 'incorrect' : 'partial';
+
+    // Format the feedback text
+    const feedbackText = text.replace(/VERDICT:.*\n?/i, '').trim();
+    const formattedText = feedbackText
+      .replace(/FEEDBACK:/g, '<strong style="color:var(--text)">📝 Feedback:</strong>')
+      .replace(/WHY IT WORKS.*?:/gi, '<strong style="color:var(--text)">🔍 Why it works (or doesn\'t):</strong>')
+      .replace(/HOW TO IMPROVE:/gi, '<strong style="color:var(--text)">🛠 How to improve:</strong>')
+      .replace(/WHAT TO STUDY:/gi, '<strong style="color:var(--accent2)">📚 What to study:</strong>')
+      .replace(/\n/g, '<br>');
+
+    feedbackEl.innerHTML = `
+      <div class="feedback-verdict">
+        <span class="verdict-icon">${icon}</span>
+        <span>${verdictLabel}</span>
+      </div>
+      <div class="feedback-body">${formattedText}</div>
+    `;
+    feedbackEl.className = `feedback-box ${cssClass} open`;
+
+    answered.add(idx);
+    updateProgress();
+
+  } catch (err) {
+    feedbackEl.innerHTML = `
+      <div class="feedback-verdict"><span class="verdict-icon">⚠️</span><span style="color:var(--danger)">API Error</span></div>
+      <div class="feedback-body">${escHtml(err.message)}<br><br>
+      Common fixes:<br>
+      • Check your API key is correct (starts with sk-ant-)<br>
+      • Make sure your key has credits available at console.anthropic.com<br>
+      • If deploying to GitHub Pages, the CORS header 'anthropic-dangerous-direct-browser-access' must be present (it is included in this app)</div>
+    `;
+    feedbackEl.className = 'feedback-box incorrect open';
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    spinner.classList.remove('active');
+    label.textContent = 'Get AI Feedback';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ATTACH LISTENERS
+// ═══════════════════════════════════════════════════════════════
+function attachListeners(lesson) {
+  answered.clear();
+  updateProgress();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+renderLesson(lessons[0]);
+</script>
+</body>
+</html>
